@@ -1,3 +1,16 @@
+## Mastermind Game
+
+clone or download the repository and run in the terminal:
+
+`npm install`
+`npm start`
+
+Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+
+<img src="https://github.com/Grispi/made_app/raw/master/Screenshot.png?raw=true" width="700" alt="screenshot">
+
+
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
