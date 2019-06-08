@@ -15,10 +15,15 @@ function pickColours(number) {
     return "yellow";
   }
 }
+
 class Selector extends React.Component {
   render() {
     return (
-      <select value={this.props.value} onChange={this.props.onChange}>
+      <select
+        value={this.props.value}
+        onChange={this.props.onChange}
+        className="selector"
+      >
         <option value="green">green</option>
         <option value="red">red</option>
         <option value="blue">blue</option>
@@ -28,15 +33,13 @@ class Selector extends React.Component {
   }
 }
 
+// component that lets the user select their code guess
 class Colours extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       value: ["green", "green", "green", "green"]
     };
-
-    this.handleChange = this.handleChange.bind(this);
-    this.handleSubmit = this.handleSubmit.bind(this);
   }
 
   handleChange(event, index) {
@@ -55,7 +58,7 @@ class Colours extends React.Component {
   render() {
     return (
       <div>
-        <form onSubmit={this.handleSubmit}>
+        <form onSubmit={e => this.handleSubmit(e)}>
           <Selector
             onChange={event => this.handleChange(event, 0)}
             value={this.state.value[0]}
@@ -72,74 +75,145 @@ class Colours extends React.Component {
             onChange={event => this.handleChange(event, 3)}
             value={this.state.value[3]}
           />
-          <input type="submit" value="Submit" />
+          <input type="submit" value="Submit" className="submit" />
         </form>
       </div>
     );
   }
 }
 
+// component that shows the user guess and calculates the hints given the secret code
 function Guess(props) {
   const guess = props.guess;
   const secretCode = props.secretCode;
-  function createDicc(diccColours, color) {
-    if (diccColours[color]) {
-      diccColours[color] = diccColours[color] + 1;
+
+  // function that increment colour in the dictionary
+  function incrementColour(dictColours, colour) {
+    if (dictColours[colour]) {
+      dictColours[colour] = dictColours[colour] + 1;
     } else {
-      diccColours[color] = 1;
+      dictColours[colour] = 1;
     }
   }
 
+  // conditional that checks if the guess is the secret Code, in that case show the user that they won.
   if (guess.join(", ") === secretCode.join(", ")) {
     return (
       <>
-        <p>{guess.join(", ")}</p>
+        <p>
+          {guess.map((e, i) => (
+            <span key={i}>
+              <Colour colour={e} />{" "}
+            </span>
+          ))}
+        </p>
         <h1>You win</h1>
       </>
     );
   } else {
+    // if the guess is not the secret code, look for colours in same position and also same colours but in different position.
     let exactPosition = 0;
-    let exactPositionIndexes = [];
-    let diccColours = {};
-    let diccSecretCodeColours = {};
+    let dictGuessColours = {};
+    let dictSecretCodeColours = {};
 
+    // loop through each colour from the secret code and the guess code
     for (let i = 0; i < guess.length; i++) {
+      // look for the same position and colour and increment the count
       if (guess[i] === secretCode[i]) {
         exactPosition = exactPosition + 1;
-        exactPositionIndexes.push(i);
       } else {
+        // if not in same position and colour, increment the colour occurrence from each code in a dictionary of occurrences by colour in order to compare them in the next step
         const color = guess[i];
         const colorSecretCode = secretCode[i];
-        createDicc(diccColours, color);
-        createDicc(diccSecretCodeColours, colorSecretCode);
+        incrementColour(dictGuessColours, color);
+        incrementColour(dictSecretCodeColours, colorSecretCode);
       }
     }
-    const sameColour = Object.keys(diccSecretCodeColours);
+    // creates an array from the Secret Code dictionary keys in order to iterate over them
+    const sameColour = Object.keys(dictSecretCodeColours);
     let sameColourNumber = 0;
 
+    // loop through the colous in the secret code and compares occurrences of that colour in both dictionaries.
     for (let x = 0; x < sameColour.length; x++) {
       let keyc = sameColour[x];
-      let countGuessKey = diccColours[keyc];
-      let countCodeKey = diccSecretCodeColours[keyc];
+      let countGuessKey = dictGuessColours[keyc];
+      let countCodeKey = dictSecretCodeColours[keyc];
+
+      // if there are more occurrences in the guessed code, keep the occurrences from the secret code
       if (countCodeKey - countGuessKey <= 0) {
         sameColourNumber = sameColourNumber + countCodeKey;
+        // otherwise, if there are more occurrences in the secret code, keep the occurrences from the guessed code
       } else if (countCodeKey - countGuessKey > 0) {
         sameColourNumber = sameColourNumber + countGuessKey;
       }
     }
+    // return the guess code with css colours and the hints
     return (
       <>
         <p>
-          {guess.join(", ")}
+          {guess.map((e, i) => (
+            <span key={i}>
+              <Colour colour={e} />{" "}
+            </span>
+          ))}
           <br />
-          red:{sameColourNumber} white:{exactPosition}
+          Same colour: {sameColourNumber}
+          <br />
+          Same position & colour:
+          {exactPosition}
         </p>
-        <p className="try-again">try again</p>
       </>
     );
   }
 }
 
+// Component that conditionally shows the secret code, depending on a checkbox to reveal it.
+class SecretCode extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      revealSecretCode: false
+    };
+  }
+  handleChange() {
+    this.setState({
+      revealSecretCode: !this.state.revealSecretCode
+    });
+  }
+
+  render() {
+    const secretCode = this.state.revealSecretCode ? (
+      <>
+        {this.props.secretCode.map((e, i) => (
+          <span key={i}>
+            <Colour colour={e} />{" "}
+          </span>
+        ))}{" "}
+        🤐
+      </>
+    ) : null;
+    return (
+      <div>
+        Reveal secret code?{" "}
+        <input
+          type="checkbox"
+          checked={this.state.revealSecretCode}
+          onChange={() => this.handleChange()}
+        />
+        {secretCode}
+      </div>
+    );
+  }
+}
+
+// component that creates the css circle for each colours from the codes.
+class Colour extends React.Component {
+  render() {
+    return <span className={"circle " + this.props.colour} />;
+  }
+}
+
+// main component that creates the secret code, the posibility to play again and save the steps/rounds
 class Game extends React.Component {
   constructor(props) {
     super(props);
@@ -170,6 +244,7 @@ class Game extends React.Component {
   }
 
   render() {
+    //Determines if there is a winner so that we can stop prompting the user for guesses.
     let winner = false;
     let stepsList = this.state.steps[this.state.steps.length - 1];
     if (stepsList && this.state.secretCode.join(" ") === stepsList.join(" ")) {
@@ -180,23 +255,25 @@ class Game extends React.Component {
       <div className="game">
         <div className="game-board">
           <h1 className="title">Mastermind Game</h1>
-          secretCode = {this.state.secretCode.join(" ")}
           <hr />
-          <h1>Guess the code</h1>
+          <SecretCode secretCode={this.state.secretCode} />
+          <h2>Guess the code</h2>
           <ul>
+            {/* render the steps with the incrementing step numbers */}
             {this.state.steps.map((step, index) => (
               <li key={index}>
-                <p>Round Nº {index + 1}</p>
+                <p>Guess Nº {index + 1}</p>
                 <Guess guess={step} secretCode={this.state.secretCode} />
               </li>
             ))}
             {winner ? null : (
               <li>
-                <p>Round Nº{this.state.steps.length + 1}</p>
+                <p>Guess Nº{this.state.steps.length + 1}</p>
                 <Colours onSubmit={codeGuess => this.handleSubmit(codeGuess)} />
               </li>
             )}
           </ul>
+          {/* button to play again that resets the game state when clicked */}
           <button className="button" onClick={() => this.playAgain()}>
             Play Again
           </button>
